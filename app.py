@@ -5,10 +5,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 # Page Header
-st.set_page_config(page_title="Assistant Agent")
-st.title("Assistant Agent")
-st.markdown("Assistant Agent Powered by Groq.")
-st.markdown("### Help researchers gather insights from academic papers, extract summaries, and identify key references.")
+st.set_page_config(page_title="Movie Recommender")
+st.title("Movie Recommender")
+st.markdown("Movie Recommender Powered by Groq.")
+st.markdown("### Help casual movie goers find possible movies.")
 
 # Model and Agent Tools
 llm = ChatGroq(api_key=st.secrets["GROQ_API_KEY"], model="llama3-8b-8192")
@@ -26,53 +26,50 @@ parser = StrOutputParser()
 st.session_state["summarized_text"] = ""
 
 # User Interface
-with st.form("company_info", clear_on_submit=True):
+with st.form("movie_insight", clear_on_submit=False):
     # text to summarize
-    product_name = st.text_input("Product Name:")
-    company_url = st.text_input("Company URL:")
-    product_category = st.text_input("Product Category:")
-    competitors_urls = st.text_area("Competitors URL list, one per line:")
-    value_proposition = st.text_input("Value Proposition:")
-    target_customer = st.text_input("Target Customer:")
+    movie_genre = st.text_input("Movie Genre:")
+    movie_similar = st.text_area("Similar Movies To:")
+    #company_url = st.text_input("Company URL:")
+    #product_category = st.text_input("Product Category:")
+    #competitors_urls = st.text_area("Competitors URL list, one per line:")
+    #value_proposition = st.text_input("Value Proposition:")
+    #target_customer = st.text_input("Target Customer:")
 
 
     # For the llm insight result
-    company_insights = ""
+    movie_insights = ""
 
     # Data process
     if st.form_submit_button("Generate Insights"):
-        if product_name and company_url:
+        if movie_genre:
             st.spinner("Processing...")
 
             # Internet search
-            company_data = search.invoke(company_url)
-            print(company_data)
+            movie_search = "IMDB " + movie_genre
+            movie_data = search.invoke(movie_search)
+            print(movie_data)
 
             prompt = """"
-            You are an expert customer service representative helping a potential customer comprehend the value of our product.
-            Your goal is to convince the customer that our product has value, while addressing what the customer needs.
+            You are an expert movie connoisseur helping guests find movies they would be interested in watching, given the genre they request, and similar to any
+            movies they provide. You are to give some themes from the movie you are recommending, but you are to avoid spoiling any plot of the movie in doing so.
 
-            Company Data: {company_data}
-            Product name: {product_name}
-            company_data: {company_data}
-            product_name: {product_name}
-            product_category: {product_category}
-            competitors_urls: {competitors_urls}
-            value_proposition: {value_proposition}
-            target_customer: {target_customer}
+            movie_genre: {movie_genre}
+            movie_data: {movie_data}
+            movie_similar: {movie_similar}
 
-            Can you please generate a report listing the following:
-            - The company's strategy, summarize what it does in the industry relevent to the product they are selling.
-            - List anypublic statements or press releases that are discussing the topic.
-            - If the company has mentioned the Competitor, and if so, how the competitor is relevent to the company.
-            - List any key leaders of the company.
-            - Provide some information on the product/strategy of the company, include insight from 10-Ks and annual reports, if available.
-            - Link articles or press releases that are relevent or mentioned in the report generated
-
-            After the report, pelase create a short text to email the Target Customer to relay some information to convince them to purchase this product.        
+            Can you please create a list of movies, that the consumer may be interested in seeing, based off of
+            their genre choice. If provided, also make sure the movies found are similar to the list of movies from movie_similar.
+            Please return the data in this format. Don't include any URLs or images. Can you please have each criteria on their own line, and an empty line between
+            each movie, and have the line with the movie title be bolded.
+            Movie Title: ### (Year released)
+            \nIMDB Rating: #.#/10
+            \nLength: ### minutes
+            \nGenre: ###, ###
+            \nSimilarities: ###
             """
             #prompt_template = ChatPromptTemplate([("system", "You are an expert at finding business insight, get data for this user and their competitors"), 
-                                    #("user", "Give me insight on this business and their competitors {company_data}")])
+                                    #("user", "Give me insight on this business and their competitors {movie_data}")])
             
             prompt_template = ChatPromptTemplate([("system", prompt)])
 
@@ -80,11 +77,8 @@ with st.form("company_info", clear_on_submit=True):
             chain = prompt_template | llm | parser
 
             # Results
-            company_insights = chain.invoke({"company_data": company_data,
-                                             "product_name": product_name,
-                                             "product_category": product_category,
-                                             "competitors_urls": competitors_urls,
-                                             "value_proposition": value_proposition,
-                                             "target_customer": target_customer})
+            movie_insights = chain.invoke({"movie_data": movie_data,
+                                             "movie_genre": movie_genre,
+                                             "movie_similar": movie_similar})
 
-    st.markdown(company_insights)
+    st.markdown(movie_insights)
